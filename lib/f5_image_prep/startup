@@ -41,7 +41,7 @@ function wait_mcp_running() {
     while true; do
 	mcp_started=$(bigstart_wb mcpd start)
 
-	if [[ $mcp_started == released ]]; then
+	if [[ $mcp_started == "released" ]]; then
 	    # this will log an error when mcpd is not up
 	    tmsh -a show sys mcp-state field-fmt | grep -q running
 
@@ -53,7 +53,7 @@ function wait_mcp_running() {
 
 	failed=$(($failed + 1))
 
-	if [[ $failed -ge $retries ]]; then
+	if (( $failed >= $retries )); then
 	    log "Failed to connect to mcpd after $failed attempts, quitting..."
 	    return 1
 	fi
@@ -73,21 +73,21 @@ function wait_tmm_started() {
 
     while true
     do
-	tmm_started=$(bigstart_wb tmm start)
+		tmm_started=$(bigstart_wb tmm start)
 
-	if [[ $tmm_started == "released" ]]; then
-	    log "detected tmm started"
-	    return 0
-	fi
+		if [[ $tmm_started == "released" ]]; then
+			log "detected tmm started"
+			return 0
+		fi
+		
+		failed=$(($failed + 1))
+		if (( $failed >= $retries )); then
+			log "tmm was not started after $failed checks, quitting..."
+			return 1
+		fi
 
-	failed=$(($failed + 1))
-	if (( $failed >= $retries )); then
-	    log "tmm was not started after $failed checks, quitting..."
-	    return 1
-	fi
-
-	log "tmm not started (check $failed/$retries), retrying in $interval seconds..."
-	sleep $interval
+		log "tmm not started (check $failed/$retries), retrying in $interval seconds..."
+		sleep $interval
     done
 }
 
@@ -150,7 +150,7 @@ function main() {
 
 			# Wait for mcpd to be ready to serialize, 20 sec to accomodate a very slow VE
 			sleep 20
-
+			
 			# Save config
 			tmsh save sys config | eval $LOGGER_CMD
 
